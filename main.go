@@ -28,23 +28,25 @@ func realMain() int {
 
   signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-  http.Get("http://10.105.4.251/peggy/clear?board=0")
-  http.Get("http://10.105.4.251/peggy/write?board=0&x=0&y=10&text={g}**********************************************************************************")
-  http.Get("http://10.105.4.251/peggy/write?board=0&x=0&y=11&text={g}**********************************************************************************")
+  clear()
 
   go serverLoop(flapChannel)
   go gameLoop(flapChannel)
 
   go func() {
-    sig := <-sigs
-    fmt.Println()
-    fmt.Println(sig)
+    <- sigs
     done <- true
   }()
 
   <-done
   fmt.Println("Exiting")
   return 0;
+}
+
+func clear() {
+  http.Get("http://10.105.4.251/peggy/clear?board=0")
+  http.Get("http://10.105.4.251/peggy/write?board=0&x=0&y=10&text={g}**********************************************************************************")
+  http.Get("http://10.105.4.251/peggy/write?board=0&x=0&y=11&text={g}**********************************************************************************")
 }
 
 func draw(board *board) {
@@ -61,35 +63,36 @@ func gameLoop(flaps <-chan bool) {
 
   bird_y_pos := 5
   bird_x_pos := 20
+  score := 0
   columns := make([]int, 80)
   rising := false
 
   for {
-    started := time.Now()
     select {
     case <- died:
       fmt.Println("Died...")
+      http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=20&y=5&text={r}SCORE:%%20%d", score))
+      time.Sleep(time.Second * 5)
       bird_y_pos = 5
       columns = make([]int, 80)
+      clear()
+      score = 0
     case <- flaps:
       bird_y_pos -= 1;
       rising = true
       if bird_y_pos < 0 { bird_y_pos = 0 }
       go func() {
-        time.Sleep(time.Second * 3)
+        time.Sleep(time.Second * 2)
         rising = false
       }()
     default:
-      fmt.Println(started)
-      fmt.Println("Rising:", rising)
-      fmt.Println("Bird Y Pos:", bird_y_pos)
-
       if (!rising) {
         bird_y_pos += 1
-        if bird_y_pos > 10 { died <- true }
       }
       time.Sleep(time.Second * 2)
     }
+    if bird_y_pos > 10 { died <- true }
+    score++
     draw(&board{ bird_x_pos: bird_x_pos, bird_y_pos: bird_y_pos, column_heights: columns, rising: rising});
   }
 }
