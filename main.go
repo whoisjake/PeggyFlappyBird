@@ -14,13 +14,17 @@ import (
 type Bird struct {
   X int
   Y int
+  PreviousY int
+  Body string
 }
 
 func (bird *Bird) Flap() {
+  bird.PreviousY = bird.Y
   bird.Y -= 1
 }
 
 func (bird *Bird) Fall() {
+  bird.PreviousY = bird.Y
   bird.Y += 1
 }
 
@@ -38,16 +42,19 @@ func (pipe *Pipe) ShiftLeft() {
 }
 
 type Board struct {
-  Pipes []Pipe
+  Pipes []*Pipe
 }
 
-func (board *Board) RandomizePipes() {
-  var currentX = 80
-  for _,p := range board.Pipes {
-    p.Height = rand.Intn(6) + 1
-    p.X = currentX
+func randomBoard() *Board {
+  currentX := 80
+  board := &Board{Pipes: make([]*Pipe, 100) }
+
+  for i:=0; i < 100; i++ {
+    board.Pipes[i] = &Pipe{Height: rand.Intn(6) + 1, X: currentX}
     currentX += 7
   }
+
+  return board
 }
 
 func (board *Board) ShiftPipes() {
@@ -58,6 +65,16 @@ func (board *Board) ShiftPipes() {
 
 type Game struct {
   Score int
+}
+
+func write(x int, y int, content string) {
+  http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text=%s",x,y,content))
+}
+
+func clear() {
+  http.Get("http://10.105.4.251/peggy/clear?board=0")
+  write(0,10,"{g}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}")
+  write(0,11,"{g}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}")
 }
 
 func main() {
@@ -86,50 +103,45 @@ func realMain() int {
   return 0;
 }
 
-func clear() {
-  //http.Get("http://10.105.4.251/peggy/clear?board=0")
-  //http.Get("http://10.105.4.251/peggy/write?board=0&x=0&y=10&text={g}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}")
-  //http.Get("http://10.105.4.251/peggy/write?board=0&x=0&y=11&text={g}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}{f}")
-}
 
-func draw(bird Bird, board Board) {
+
+func draw(bird *Bird, board *Board) {
   for _,p := range board.Pipes {
-    fmt.Println("PIPE",p);
     if (p.X < 80) {
-      //var pipeTop = "TTTTT"
-      //var pipeMiddle = "%20{f}{f}{f}%20"
+      pipeTop := "TTTTT"
+      pipeMiddle := "%20{f}{f}{f}%20"
       // Top fo pipe = 11 - Ground Height - Height
-      var topY = 11 - 2 - p.Height
+      topY := 11 - 2 - p.Height
 
       // Pipe is X
       // Previous Pipe drawing is X - 1
       // Draw pipe top (X - 1)
-      //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text=%20%20%20%20%20",p.X-1,topY))
+      write(p.X-1,topY,"%20%20%20%20%20")
       // Draw middles (X - 1)
       for y := topY+1; y < 10; y++ {
-        //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text=%20%20%20%20%20",p.X-1,y))
+        write(p.X-1,y,"%20%20%20%20%20")
       }
 
       // Draw pipe top
-      //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text=%s",p.X,topY,pipeTop))
+      write(p.X,topY,pipeTop)
+
       // Draw middle * (height - 3)
       for y := topY+1; y < 10; y++ {
-        //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text=%s",p.X,y,pipeMiddle))
+        write(p.X,y,pipeMiddle)
       }
     }
   }
-  //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text=%%20%%20%%20", bird.X, bird.Y+1))
-  //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text=%%20%%20%%20", bird.X, bird.Y-1))
-  //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=%d&y=%d&text={r}~B~", bird.X, bird.Y))
+
+  write(bird.X,bird.PreviousY,"%20%20%20")
+  write(bird.X,bird.Y,bird.Body)
 }
 
 func gameLoop(flaps <-chan bool) {
   died := make(chan bool, 1)
 
-  bird := Bird{Y: 5, X: 35}
-  board := Board{Pipes: make([]Pipe, 100) }
-  board.RandomizePipes()
-  game := Game{Score: 0}
+  bird := &Bird{Y: 5, X: 35, Body: "{r}~B~"}
+  board := randomBoard()
+  game := &Game{Score: 0}
 
   clear()
 
@@ -137,7 +149,7 @@ func gameLoop(flaps <-chan bool) {
     select {
     case <- died:
       fmt.Println("Died...")
-      //http.Get(fmt.Sprintf("http://10.105.4.251/peggy/write?board=0&x=20&y=5&text={r}SCORE:%%20%d", game.Score))
+      write(20,5,fmt.Sprintf("{r}SCORE:%%20%d",game.Score))
       time.Sleep(time.Second * 5)
     case <- flaps:
       bird.Flap()
